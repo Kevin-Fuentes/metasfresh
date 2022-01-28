@@ -30,6 +30,8 @@ let poReference;
 let firstBomMainProductId;
 let secondBomMainProductId;
 
+let bomName;
+
 it('Read the fixture', function() {
   cy.fixture('materialDisposition/create_material_dispo_masterdata_and_sales_order_spec.json').then(f => {
     const dateOverride = null;
@@ -52,8 +54,8 @@ it('Read the fixture', function() {
   });
 });
 
-describe('Create plant and warehouse', function() {
-  it('Create plant', function() {
+describe('Create plant and warehouse', function () {
+  it('Create plant', function () {
     cy.visitWindow('53004', 'NEW');
     cy.writeIntoStringField('Name', plantName);
     cy.selectInListField('S_ResourceType_ID', 'Produktionsressource');
@@ -64,7 +66,7 @@ describe('Create plant and warehouse', function() {
     cy.writeIntoStringField('PlanningHorizon', 1);
   });
 
-  it('Create warehouse', function() {
+  it('Create warehouse', function () {
     cy.fixture('misc/warehouse.json').then(warehouseJson => {
       Object.assign(new Warehouse(), warehouseJson)
         .setName(warehouseName)
@@ -75,8 +77,8 @@ describe('Create plant and warehouse', function() {
   });
 });
 
-describe('Create customer, main product and price', function() {
-  it('Create main product and price', function() {
+describe('Create customer, main product and price', function () {
+  it('Create main product and price', function () {
     Builder.createBasicPriceEntities(priceSystemName, null, priceListName, true);
     Builder.createBasicProductEntities(productCategoryName, productCategoryName, priceListName, mainProductName, /*productValue=*/ mainProductName, /*productType=*/ 'Item');
     cy.getCurrentWindowRecordId().then(id => {
@@ -84,12 +86,20 @@ describe('Create customer, main product and price', function() {
     });
   });
 
-  it('Create customer', function() {
+  it('Create customer', function () {
     cy.fixture('sales/simple_customer.json').then(customerJson => {
       const bpartner = new BPartner({ ...customerJson, name: customerName });
       bpartner.setCustomerPricingSystem(priceSystemName);
       bpartner.apply();
     });
+  });
+});
+
+it('Create a new Bill of Material and add a component', function () {
+  cy.fixture('product/bill_of_material.json').then(f => {
+    bomName = appendHumanReadableNow(f['name'], null);
+
+    Object.assign(new BillOfMaterial(), f).setName(bomName).setProduct(mainProductName).apply();
   });
 });
 
@@ -114,8 +124,9 @@ describe('Create products, BOMs and planning data', function() {
     describe('Create and verify 1st BOM', function() {
       it('Create 1st BOM', function() {
         cy.fixture('product/bill_of_material.json').then(billMaterialJson => {
-          Object.assign(new BillOfMaterial(), billMaterialJson)
+          Object.assign(new BillOfMaterialVersion(), billMaterialJson)
             .setName(firstBomName)
+            .setBOM()
             .setProduct(mainProductName)
             // eslint-disable-next-line prettier/prettier
             .addLine(new BillOfMaterialLine().setProduct(componentProductName).setQuantity(10))
